@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrbitalVitals — Autonomous Astronaut Sensor Telemetry</title>
+  <style>
+    :root {
+      --bg: #08121e;
+      --panel: #102136;
+      --panel-border: #1e3d5c;
+      --cyan: #14b8c4;
+      --text: #e6f1ff;
+      --muted: #8ca6c4;
+      --nominal: #14b8c4;
+      --caution: #f59e0b;
+      --critical: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 12px 18px; min-height: 100vh; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--panel); border: 1px solid var(--panel-border);
+      padding: 10px 18px; border-radius: 10px; margin-bottom: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { height: 42px; border-radius: 6px; background: #fff; padding: 2px; }
+    .brand h1 { font-size: 1.12rem; color: var(--cyan); letter-spacing: 0.4px; }
+    .brand p { font-size: 0.82rem; color: var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .badge {
+      background: #0b1829; border: 1px solid var(--panel-border);
+      padding: 6px 12px; border-radius: 6px; font-size: 0.78rem;
+    }
+    .btn {
+      background: #16304d; color: var(--text); border: 1px solid var(--cyan);
+      padding: 6px 11px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.76rem;
+      transition: 0.15s;
+    }
+    .btn.active { background: var(--cyan); color: #06101a; }
+
+    .controls-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+      background: var(--panel); border: 1px solid var(--panel-border);
+      padding: 10px 14px; border-radius: 10px; margin-bottom: 14px;
+    }
+    .ctrl-group h3 { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .card {
+      background: var(--panel); border: 1px solid var(--panel-border);
+      border-radius: 12px; padding: 16px 18px;
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .card-header h2 {
+      font-size: 0.92rem; color: var(--cyan);
+      text-transform: uppercase; letter-spacing: 0.6px;
+    }
+    .hint-text { font-size: 0.78rem; color: var(--muted); }
+
+    /* Fixed 3-column HUD: Left Sensors | Center Avatar | Right Sensors */
+    .hud-3col {
+      display: grid;
+      grid-template-columns: 1fr 240px 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+    @media (max-width: 920px) {
+      .controls-bar, .hud-3col { grid-template-columns: 1fr; }
+    }
+    .sensor-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .body-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0a1626;
+      border: 1px solid #19334d;
+      border-radius: 12px;
+      padding: 12px 10px;
+      height: 390px;
+    }
+    svg.body-svg { width: 200px; height: 345px; display: block; }
+    .svg-clickable { cursor: pointer; transition: filter 0.2s; }
+    .svg-clickable:hover { filter: brightness(1.3); }
+
+    /* Fixed-height sensor cards so layout NEVER shifts or stretches */
+    .sensor-box {
+      background: #0a1626;
+      border: 1px solid #19334d;
+      border-radius: 10px;
+      padding: 12px 15px;
+      height: 122px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .sensor-box.has-alert {
+      cursor: pointer;
+    }
+    .sensor-box.has-alert:hover {
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.28);
+    }
+    .sensor-head {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .sensor-box .label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    .sensor-box .val { font-size: 1.32rem; font-weight: 700; }
+    .sensor-box .sub { font-size: 0.72rem; color: var(--muted); }
+
+    .dmg-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: #14283e;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 3px;
+    }
+    .dmg-bar-fill {
+      height: 100%;
+      background: var(--cyan);
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+
+    .hazard-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      color: #08121e;
+      animation: pulseHazard 1.3s infinite;
+    }
+    .hazard-btn.visible {
+      display: inline-flex;
+    }
+    .hazard-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.28);
+      color: #fff;
+      font-weight: 900;
+      font-size: 0.76rem;
+    }
+    @keyframes pulseHazard {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.07); opacity: 0.86; }
+    }
+
+    .svg-alert-badge {
+      display: none;
+      cursor: pointer;
+    }
+    .svg-alert-badge.visible {
+      display: block;
+    }
+
+    /* Popup Modal Window Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 10, 18, 0.78);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-window {
+      background: #0d1d30;
+      border: 2px solid var(--cyan);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 550px;
+      padding: 22px 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+      animation: popIn 0.16s ease-out;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.93); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1e3d5c;
+    }
+    .modal-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 6px;
+      color: #06101a;
+      margin-bottom: 6px;
+    }
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .modal-close {
+      background: #16304d;
+      color: var(--text);
+      border: 1px solid #2b527a;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .modal-close:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+    .modal-section-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+    .modal-why {
+      font-size: 0.92rem;
+      color: #dbeafe;
+      line-height: 1.45;
+    }
+    .modal-action {
+      background: #081523;
+      border-left: 4px solid var(--cyan);
+      padding: 10px 12px;
+      border-radius: 6px;
+      color: #a5f3fc;
+      font-weight: 600;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .modal-osdr-box {
+      margin-top: 12px;
+      background: #071220;
+      border: 1px solid #1b3958;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 0.76rem;
+      color: #93c5fd;
+      line-height: 1.45;
+    }
+    .modal-footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #19334d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      color: var(--cyan);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <img src="/logo-OrbitalVitals.jpg" alt="OrbitalVitals Logo" />
+      <div>
+        <h1 id="appTitle">OrbitalVitals — Autonomous Astronaut Sensor Telemetry</h1>
+        <p id="crewHeader">CDR. V. KOWALSKI | Location: INSIDE STATION</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="badge" id="outboxBadge">Earth Sync Outbox: 0 pkts</div>
+      <button class="btn active" id="btnEn" onclick="setLang('en')">EN (Default)</button>
+      <button class="btn" id="btnPt" onclick="setLang('pt')">PT-BR</button>
+    </div>
+  </header>
+
+  <section class="controls-bar">
+    <div class="ctrl-group">
+      <h3 id="lblDaysCtrl">1. Time in Space (Cumulative Damage)</h3>
+      <div class="btn-row">
+        <button class="btn active" id="d7" onclick="sendCtrl('days=7')">7 Days</button>
+        <button class="btn" id="d21" onclick="sendCtrl('days=21')">21 Days</button>
+        <button class="btn" id="d60" onclick="sendCtrl('days=60')">60 Days</button>
+        <button class="btn" id="d180" onclick="sendCtrl('days=180')">180 Days</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <h3 id="lblLocCtrl">2. Astronaut Location (Shielding)</h3>
+      <div class="btn-row">
+        <button class="btn active" id="btnStation" onclick="sendCtrl('eva=false')">Station (78%)</button>
+        <button class="btn" id="btnEva" onclick="sendCtrl('eva=true')">EVA Suit (32%)</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <h3 id="lblGravCtrl">3. Gravity / Centrifugal Force</h3>
+      <div class="btn-row">
+        <button class="btn active" id="g0" onclick="sendCtrl('gravity=0.0')">0.0G</button>
+        <button class="btn" id="g16" onclick="sendCtrl('gravity=0.16')">0.16G</button>
+        <button class="btn" id="g38" onclick="sendCtrl('gravity=0.38')">0.38G</button>
+        <button class="btn" id="g75" onclick="sendCtrl('gravity=0.75')">0.75G</button>
+        <button class="btn" id="g100" onclick="sendCtrl('gravity=1.0')">1.0G</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <h3 id="lblStormCtrl">4. External Space Radiation</h3>
+      <div class="btn-row">
+        <button class="btn active" id="stormOff" onclick="sendCtrl('storm=false')">Nominal GCR</button>
+        <button class="btn" id="stormOn" onclick="sendCtrl('storm=true')">Solar Storm (SPE)</button>
+      </div>
+    </div>
+  </section>
+
+  <main class="card">
+    <div class="card-header">
+      <h2 id="lblSensors">Body Sensor Telemetry HUD</h2>
+      <span class="hint-text" id="lblHint">Click any pulsing [!] hazard icon to open the diagnostic popup window</span>
+    </div>
+
+    <div class="hud-3col">
+      <!-- Left Column of Sensors -->
+      <div class="sensor-col">
+        <!-- 1. Eyes / Neuro-Ocular (SANS: OSD-815..818 / LSDS-136) -->
+        <div class="sensor-box" id="box_NEURO_OCULAR" onclick="openModal('NEURO_OCULAR')">
+          <div class="sensor-head">
+            <span class="label" id="lblEyes">Ocular Pressure (Eyes / SANS)</span>
+            <button class="hazard-btn" id="btn_NEURO_OCULAR">
+              <span class="hazard-icon">!</span>
+              <span id="lvl_NEURO_OCULAR">CAUTION</span>
+            </button>
+          </div>
+          <div class="val" id="valEyes">18.9 mmHg</div>
+          <div>
+            <div class="sub" id="subEyes">Optic Shift: +0.09 mm | Tilt: 2.0° (LSDS-136)</div>
+            <div class="dmg-bar-bg"><div class="dmg-bar-fill" id="barEyes" style="width:30%"></div></div>
+          </div>
+        </div>
+
+        <!-- 2. Arterial Blood Pressure & Aortic Velocity (OSD-435 / LSDS-22) -->
+        <div class="sensor-box" id="box_CARDIOVASCULAR" onclick="openModal('CARDIOVASCULAR')">
+          <div class="sensor-head">
+            <span class="label" id="lblBp">Blood Pressure & Aortic Flow</span>
+            <button class="hazard-btn" id="btn_CARDIOVASCULAR">
+              <span class="hazard-icon">!</span>
+              <span id="lvl_CARDIOVASCULAR">CAUTION</span>
+            </button>
+          </div>
+          <div class="val" id="valBp">120 / 78 mmHg</div>
+          <div class="sub" id="subBp">HR: 66 bpm | HRV: 54 ms | Aorta: 108 cm/s</div>
+        </div>
+
+        <!-- 3. Cumulative Bone Loss & Vertebral Strength (OSD-108 / OSD-471 / OSD-942) -->
+        <div class="sensor-box" id="box_MUSCULOSKELETAL" onclick="openModal('MUSCULOSKELETAL')">
+          <div class="sensor-head">
+            <span class="label" id="lblBones">Cumulative Bone Loss (DEXA)</span>
+            <button class="hazard-btn" id="btn_MUSCULOSKELETAL">
+              <span class="hazard-icon">!</span>
+              <span id="lvl_MUSCULOSKELETAL">CRITICAL</span>
+            </button>
+          </div>
+          <div class="val" id="valBones">-0.31 % total</div>
+          <div>
+            <div class="sub" id="subBones">Rate: -1.35%/mo | Vertebral Str: 99.5%</div>
+            <div class="dmg-bar-bg"><div class="dmg-bar-fill" id="barBones" style="width:10%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Astronaut Body SVG with Clickable (!) Hazard Badges -->
+      <div class="body-center">
+        <svg class="body-svg" viewBox="0 0 200 340">
+          <!-- Outer Suit / Station Shield Ring -->
+          <ellipse id="svgShield" class="svg-clickable" onclick="openModal('IMMUNE_RADIATION')"
+                   cx="100" cy="170" rx="88" ry="160" fill="none" stroke="#14b8c4" stroke-width="3" stroke-dasharray="6,4" />
+
+          <!-- Head & Eyes (Neuro-Ocular SANS) -->
+          <g class="svg-clickable" onclick="openModal('NEURO_OCULAR')">
+            <circle id="svgEyes" cx="100" cy="48" r="25" fill="#102136" stroke="#14b8c4" stroke-width="4" />
+            <circle cx="91" cy="44" r="4" fill="#e6f1ff" />
+            <circle cx="109" cy="44" r="4" fill="#e6f1ff" />
+          </g>
+
+          <!-- Torso / Cardiovascular (BP & SpO2) -->
+          <g class="svg-clickable" onclick="openModal('CARDIOVASCULAR')">
+            <rect id="svgCardio" x="68" y="82" width="64" height="92" rx="14" fill="#102136" stroke="#14b8c4" stroke-width="4" />
+            <path d="M85 126 L95 126 L100 111 L106 141 L112 126 L120 126" fill="none" stroke="#e6f1ff" stroke-width="2.5" />
+          </g>
+
+          <!-- Arms & Legs / Musculoskeletal (Bones) -->
+          <g class="svg-clickable" onclick="openModal('MUSCULOSKELETAL')">
+            <rect id="svgBonesL" x="42" y="86" width="20" height="90" rx="8" fill="#102136" stroke="#14b8c4" stroke-width="3" />
+            <rect id="svgBonesR" x="138" y="86" width="20" height="90" rx="8" fill="#102136" stroke="#14b8c4" stroke-width="3" />
+            <rect id="svgLegsL" x="72" y="182" width="24" height="120" rx="10" fill="#102136" stroke="#14b8c4" stroke-width="4" />
+            <rect id="svgLegsR" x="104" y="182" width="24" height="120" rx="10" fill="#102136" stroke="#14b8c4" stroke-width="4" />
+          </g>
+
+          <!-- SVG (!) Badges right on the affected body locations -->
+          <g id="svgBadge_NEURO_OCULAR" class="svg-alert-badge" onclick="openModal('NEURO_OCULAR')">
+            <circle cx="126" cy="28" r="11" fill="#ef4444" stroke="#08121e" stroke-width="2" />
+            <text x="126" y="33" text-anchor="middle" fill="#fff" font-size="14" font-weight="900">!</text>
+          </g>
+          <g id="svgBadge_CARDIOVASCULAR" class="svg-alert-badge" onclick="openModal('CARDIOVASCULAR')">
+            <circle cx="132" cy="96" r="11" fill="#f59e0b" stroke="#08121e" stroke-width="2" />
+            <text x="132" y="101" text-anchor="middle" fill="#fff" font-size="14" font-weight="900">!</text>
+          </g>
+          <g id="svgBadge_MUSCULOSKELETAL" class="svg-alert-badge" onclick="openModal('MUSCULOSKELETAL')">
+            <circle cx="130" cy="235" r="11" fill="#ef4444" stroke="#08121e" stroke-width="2" />
+            <text x="130" y="240" text-anchor="middle" fill="#fff" font-size="14" font-weight="900">!</text>
+          </g>
+          <g id="svgBadge_IMMUNE_RADIATION" class="svg-alert-badge" onclick="openModal('IMMUNE_RADIATION')">
+            <circle cx="172" cy="65" r="11" fill="#ef4444" stroke="#08121e" stroke-width="2" />
+            <text x="172" y="70" text-anchor="middle" fill="#fff" font-size="14" font-weight="900">!</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Right Column of Sensors -->
+      <div class="sensor-col">
+        <!-- 4. Gravity / Centrifugal Force -->
+        <div class="sensor-box">
+          <div class="sensor-head">
+            <span class="label" id="lblGrav">Gravity / Centrifugal Force</span>
+          </div>
+          <div class="val" id="valGrav">0.00 G</div>
+          <div class="sub" id="subGrav">Artificial Gravity / Planetary Sensor</div>
+        </div>
+
+        <!-- 5. Blood Oxygenation (SpO2) & Cabin EDA -->
+        <div class="sensor-box">
+          <div class="sensor-head">
+            <span class="label" id="lblSpo2">Blood Oxygenation (SpO2) & EDA</span>
+          </div>
+          <div class="val" id="valSpo2">98.2 %</div>
+          <div class="sub" id="subSpo2">Cabin CO2: 2.4 mmHg | Temp: 23.8 °C</div>
+        </div>
+
+        <!-- 6. Radiation + Inspiration4 Immune Markers (NLR & CRP) -->
+        <div class="sensor-box" id="box_IMMUNE_RADIATION" onclick="openModal('IMMUNE_RADIATION')">
+          <div class="sensor-head">
+            <span class="label" id="lblRadExt">Radiation & Immune (NLR / CRP)</span>
+            <button class="hazard-btn" id="btn_IMMUNE_RADIATION">
+              <span class="hazard-icon">!</span>
+              <span id="lvl_IMMUNE_RADIATION">CRITICAL</span>
+            </button>
+          </div>
+          <div class="val" id="valRad">1.5 mGy total</div>
+          <div>
+            <div class="sub" id="subRad">In: 0.21 mGy/d | NLR: 1.9 | CRP: 1.1 mg/L</div>
+            <div class="dmg-bar-bg"><div class="dmg-bar-fill" id="barRad" style="width:8%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Diagnostic Popup Window (Modal) -->
+  <div class="modal-overlay" id="diagModal" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-window" id="modalWindow">
+      <div class="modal-top">
+        <div>
+          <span class="modal-badge" id="modalBadge">CRITICAL</span>
+          <div class="modal-title" id="modalTitle">Alert Title</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()" title="Close">✕</button>
+      </div>
+
+      <div class="modal-section-label" id="lblModalWhy">What is happening (Sensor Analysis)</div>
+      <div class="modal-why" id="modalWhy"></div>
+
+      <div class="modal-section-label" id="lblModalAction">Recommended Countermeasure</div>
+      <div class="modal-action" id="modalAction"></div>
+
+      <div class="modal-osdr-box">
+        <div><strong id="modalTier">Tier 1</strong> — <span id="modalOsdr">OSD-816</span></div>
+        <div style="color:#8ca6c4; margin-top:2px;">📄 Source File / API: <code id="modalFile" style="color:#a5f3fc;">LSDS-136</code></div>
+      </div>
+
+      <div class="modal-footer">
+        <span>NASA OSDR Validated Model</span>
+        <span id="modalStats">EWMA: 21.5 mmHg (Z=4.6)</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentLang = 'en';
+    let activeModalSystem = null;
+    let latestAlertsBySystem = {};
+
+    const UI_TEXT = {
+      en: {
+        daysCtrl: "1. Time in Space (Cumulative Damage)",
+        d7: "7 Days", d21: "21 Days", d60: "60 Days", d180: "180 Days",
+        locCtrl: "2. Astronaut Location (Shielding)",
+        btnStation: "Station (78%)",
+        btnEva: "EVA Suit (32%)",
+        gravCtrl: "3. Gravity / Centrifugal Force",
+        stormCtrl: "4. External Space Radiation",
+        stormOff: "Nominal GCR",
+        stormOn: "Solar Storm (SPE)",
+        sensors: "Body Sensor Telemetry HUD",
+        hint: "Click any pulsing [!] hazard icon to open the diagnostic popup window",
+        bp: "Blood Pressure & Aortic Flow",
+        spo2: "Blood Oxygenation (SpO2) & EDA",
+        radExt: "Radiation & Immune (NLR / CRP)",
+        grav: "Gravity / Centrifugal Force",
+        eyes: "Ocular Pressure (Eyes / SANS)",
+        bones: "Cumulative Bone Loss (DEXA)",
+        modalWhy: "What is happening (Sensor Analysis)",
+        modalAction: "Recommended Countermeasure"
+      },
+      pt: {
+        daysCtrl: "1. Tempo no Espaço (Dano Acumulado)",
+        d7: "7 Dias", d21: "21 Dias", d60: "60 Dias", d180: "180 Dias",
+        locCtrl: "2. Localização (Blindagem)",
+        btnStation: "Estação (78%)",
+        btnEva: "Traje EVA (32%)",
+        gravCtrl: "3. Gravidade / Força Centrífuga",
+        stormCtrl: "4. Radiação Espacial Externa",
+        stormOff: "Fluxo GCR Nominal",
+        stormOn: "Tempestade Solar (SPE)",
+        sensors: "HUD de Sensores Corporais",
+        hint: "Clique no ícone [!] de perigo para abrir a janela de diagnóstico",
+        bp: "Pressão Arterial & Fluxo Aórtico",
+        spo2: "Oxigenação (SpO2) & Cabine EDA",
+        radExt: "Radiação & Imunidade (NLR / CRP)",
+        grav: "Gravidade / Força Centrífuga",
+        eyes: "Pressão Ocular (Olhos / SANS)",
+        bones: "Perda Óssea Acumulada (DEXA)",
+        modalWhy: "O que está acontecendo (Análise do Sensor)",
+        modalAction: "Contramedida Recomendada"
+      }
+    };
+
+    function openModal(systemKey) {
+      const alert = latestAlertsBySystem[systemKey];
+      if (!alert) return;
+      activeModalSystem = systemKey;
+      populateModal(alert);
+      document.getElementById('diagModal').classList.add('open');
+    }
+
+    function populateModal(alert) {
+      const win = document.getElementById('modalWindow');
+      const badge = document.getElementById('modalBadge');
+      win.style.borderColor = alert.color;
+      badge.style.background = alert.color;
+      badge.textContent = alert.levelLabel + ' — ' + alert.systemLabel;
+      document.getElementById('modalTitle').textContent = alert.title;
+      document.getElementById('modalTitle').style.color = alert.color;
+      document.getElementById('modalWhy').textContent = alert.explain;
+      document.getElementById('modalAction').textContent = '⚡ ' + alert.action;
+      document.getElementById('modalTier').textContent = alert.osdrTier;
+      document.getElementById('modalOsdr').textContent = alert.osdrRef;
+      document.getElementById('modalFile').textContent = alert.osdrSourceFile;
+      document.getElementById('modalStats').textContent = 'EWMA: ' + alert.ewma + ' ' + alert.unit + ' | Z-Score: ' + alert.zScore;
+    }
+
+    function closeModal() {
+      activeModalSystem = null;
+      document.getElementById('diagModal').classList.remove('open');
+    }
+
+    function closeModalOnBackdrop(e) {
+      if (e.target.id === 'diagModal') {
+        closeModal();
+      }
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+      document.getElementById('btnPt').classList.toggle('active', lang === 'pt');
+      const t = UI_TEXT[lang];
+      document.getElementById('lblDaysCtrl').textContent = t.daysCtrl;
+      document.getElementById('d7').textContent = t.d7;
+      document.getElementById('d21').textContent = t.d21;
+      document.getElementById('d60').textContent = t.d60;
+      document.getElementById('d180').textContent = t.d180;
+      document.getElementById('lblLocCtrl').textContent = t.locCtrl;
+      document.getElementById('btnStation').textContent = t.btnStation;
+      document.getElementById('btnEva').textContent = t.btnEva;
+      document.getElementById('lblGravCtrl').textContent = t.gravCtrl;
+      document.getElementById('lblStormCtrl').textContent = t.stormCtrl;
+      document.getElementById('stormOff').textContent = t.stormOff;
+      document.getElementById('stormOn').textContent = t.stormOn;
+      document.getElementById('lblSensors').textContent = t.sensors;
+      document.getElementById('lblHint').textContent = t.hint;
+      document.getElementById('lblBp').textContent = t.bp;
+      document.getElementById('lblSpo2').textContent = t.spo2;
+      document.getElementById('lblRadExt').textContent = t.radExt;
+      document.getElementById('lblGrav').textContent = t.grav;
+      document.getElementById('lblEyes').textContent = t.eyes;
+      document.getElementById('lblBones').textContent = t.bones;
+      document.getElementById('lblModalWhy').textContent = t.modalWhy;
+      document.getElementById('lblModalAction').textContent = t.modalAction;
+      fetchTelemetry();
+    }
+
+    async function sendCtrl(query) {
+      const res = await fetch('/api/control?' + query + '&lang=' + currentLang, { method: 'POST' });
+      const data = await res.json();
+      render(data);
+    }
+
+    async function fetchTelemetry() {
+      try {
+        const res = await fetch('/api/telemetry?lang=' + currentLang);
+        const data = await res.json();
+        render(data);
+      } catch (e) {}
+    }
+
+    function render(d) {
+      const s = d.sensors;
+      document.getElementById('appTitle').textContent = d.appTitle;
+      document.getElementById('crewHeader').textContent =
+        d.astronaut.callSign + ' | Day ' + s.missionDays + ' in Space | ' + d.astronaut.locationLabel;
+      document.getElementById('outboxBadge').textContent = 'Earth Sync Outbox: ' + d.outboxCount + ' pkts';
+
+      document.getElementById('d7').classList.toggle('active', s.missionDays === 7);
+      document.getElementById('d21').classList.toggle('active', s.missionDays === 21);
+      document.getElementById('d60').classList.toggle('active', s.missionDays === 60);
+      document.getElementById('d180').classList.toggle('active', s.missionDays === 180);
+
+      document.getElementById('btnStation').classList.toggle('active', !s.outsideInEvaSuit);
+      document.getElementById('btnEva').classList.toggle('active', s.outsideInEvaSuit);
+      document.getElementById('stormOff').classList.toggle('active', !s.solarStormActive);
+      document.getElementById('stormOn').classList.toggle('active', s.solarStormActive);
+      document.getElementById('g0').classList.toggle('active', Math.abs(s.gravityG - 0.0) < 0.02);
+      document.getElementById('g16').classList.toggle('active', Math.abs(s.gravityG - 0.16) < 0.02);
+      document.getElementById('g38').classList.toggle('active', Math.abs(s.gravityG - 0.38) < 0.02);
+      document.getElementById('g75').classList.toggle('active', Math.abs(s.gravityG - 0.75) < 0.02);
+      document.getElementById('g100').classList.toggle('active', Math.abs(s.gravityG - 1.0) < 0.02);
+
+      document.getElementById('valBp').textContent = s.systolicBpMmHg + ' / ' + s.diastolicBpMmHg + ' mmHg';
+      document.getElementById('subBp').textContent =
+        'HR: ' + s.heartRateBpm + ' | HRV: ' + s.hrvMs.toFixed(0) + 'ms | Aorta: ' + s.aorticPeakVelocityCmS.toFixed(0) + ' cm/s';
+
+      document.getElementById('valSpo2').textContent = s.spo2Pct.toFixed(1) + ' %';
+      document.getElementById('subSpo2').textContent = 'EDA CO2: ' + s.cabinCo2MmHg.toFixed(1) + ' mmHg | ' + s.cabinTempCelsius.toFixed(1) + ' °C';
+
+      document.getElementById('valRad').textContent = s.cumulativeRadiationMgy.toFixed(1) + ' mGy (' + s.missionDays + 'd)';
+      document.getElementById('subRad').textContent =
+        'In: ' + s.internalRadiationMgyDay.toFixed(2) + ' mGy/d | NLR: ' + s.nlrImmuneRatio.toFixed(2) + ' | CRP: ' + s.crpInflammationMgL.toFixed(1);
+
+      document.getElementById('valGrav').textContent = s.gravityG.toFixed(2) + ' G';
+      document.getElementById('subGrav').textContent = s.gravityG < 0.1 ? 'Microgravity (Unloading Active)' : 'Centrifugal / Planetary Load';
+
+      document.getElementById('valEyes').textContent = s.ocularPressureMmHg.toFixed(1) + ' mmHg';
+      document.getElementById('subEyes').textContent =
+        'Shift: +' + s.opticNerveShiftMm.toFixed(2) + 'mm | Optic Tilt: ' + s.opticNerveTiltDeg.toFixed(1) + '°';
+
+      document.getElementById('valBones').textContent = '-' + s.cumulativeBoneLossPct.toFixed(2) + '% (' + s.missionDays + 'd)';
+      document.getElementById('subBones').textContent =
+        'Rate: -' + s.boneLossRatePctMonth.toFixed(2) + '%/mo | Vertebral Str: ' + s.vertebralStrengthPct.toFixed(1) + '%';
+
+      const sys = d.systems;
+      document.getElementById('svgEyes').setAttribute('stroke', sys.NEURO_OCULAR.color);
+      document.getElementById('svgCardio').setAttribute('stroke', sys.CARDIOVASCULAR.color);
+      document.getElementById('svgBonesL').setAttribute('stroke', sys.MUSCULOSKELETAL.color);
+      document.getElementById('svgBonesR').setAttribute('stroke', sys.MUSCULOSKELETAL.color);
+      document.getElementById('svgLegsL').setAttribute('stroke', sys.MUSCULOSKELETAL.color);
+      document.getElementById('svgLegsR').setAttribute('stroke', sys.MUSCULOSKELETAL.color);
+      document.getElementById('svgShield').setAttribute('stroke', sys.IMMUNE_RADIATION.color);
+
+      const eyePct = Math.min(100, Math.max(8, ((s.ocularPressureMmHg - 14.0) / 9.0) * 100));
+      const barEyes = document.getElementById('barEyes');
+      barEyes.style.width = eyePct + '%';
+      barEyes.style.background = sys.NEURO_OCULAR.color;
+
+      const bonePct = Math.min(100, Math.max(6, (s.cumulativeBoneLossPct / 8.5) * 100));
+      const barBones = document.getElementById('barBones');
+      barBones.style.width = bonePct + '%';
+      barBones.style.background = sys.MUSCULOSKELETAL.color;
+
+      const radPct = Math.min(100, Math.max(5, (s.cumulativeRadiationMgy / 60.0) * 100));
+      const barRad = document.getElementById('barRad');
+      barRad.style.width = radPct + '%';
+      barRad.style.background = sys.IMMUNE_RADIATION.color;
+
+      latestAlertsBySystem = {};
+      for (const a of (d.alerts || [])) {
+        latestAlertsBySystem[a.system] = a;
+      }
+
+      const systemsList = ['NEURO_OCULAR', 'CARDIOVASCULAR', 'MUSCULOSKELETAL', 'IMMUNE_RADIATION'];
+      for (const key of systemsList) {
+        const box = document.getElementById('box_' + key);
+        const btn = document.getElementById('btn_' + key);
+        const lvlSpan = document.getElementById('lvl_' + key);
+        const svgBadge = document.getElementById('svgBadge_' + key);
+        const alert = latestAlertsBySystem[key];
+
+        if (alert) {
+          box.classList.add('has-alert');
+          box.style.borderColor = alert.color;
+          btn.classList.add('visible');
+          btn.style.background = alert.color;
+          lvlSpan.textContent = alert.levelLabel;
+
+          if (svgBadge) {
+            svgBadge.classList.add('visible');
+            svgBadge.querySelector('circle').setAttribute('fill', alert.color);
+          }
+        } else {
+          box.classList.remove('has-alert');
+          box.style.borderColor = '#19334d';
+          btn.classList.remove('visible');
+          if (svgBadge) svgBadge.classList.remove('visible');
+        }
+      }
+
+      if (activeModalSystem && latestAlertsBySystem[activeModalSystem]) {
+        populateModal(latestAlertsBySystem[activeModalSystem]);
+      } else if (activeModalSystem && !latestAlertsBySystem[activeModalSystem]) {
+        closeModal();
+      }
+    }
+
+    setInterval(fetchTelemetry, 1500);
+    fetchTelemetry();
+  </script>
+</body>
+</html>
