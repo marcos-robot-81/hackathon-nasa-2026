@@ -8,13 +8,21 @@
 
 ---
 
+## 🎥 Official Project Demo Video (≤ 30s NASA Space Apps Standard)
+
+- **🎬 Public Video Demo Link (22 seconds):** [https://github.com/marcos-robot-81/hackathon-nasa-2026/blob/main/1115.mp4](https://github.com/marcos-robot-81/hackathon-nasa-2026/blob/main/1115.mp4)
+- **💻 Public Project Repository Link:** [https://github.com/marcos-robot-81/hackathon-nasa-2026](https://github.com/marcos-robot-81/hackathon-nasa-2026)
+- **Duration:** `00:22` (`22.4s` — strictly compliant with the **≤ 30 seconds** NASA Space Apps Global Award rule, with English on-screen text and English subtitles).
+
+---
+
 ## 🌌 1. Overview & Problem Statement
 
 During deep-space missions (Moon, Mars transit, and planetary EVAs), radio communication delays with Earth reach up to **20 minutes each way (40 minutes round-trip)** or suffer complete blackouts. Astronauts often operate without an onboard Flight Surgeon and cannot interpret raw laboratory tables inside a pressurized spacesuit during an emergency.
 
 **OrbitalVitals** is an **autonomous, 100% offline-first biomedical monitoring and clinical decision-support system** engineered for spacecraft avionics and tactical wrist wearables:
 
-1. **Space-Grade Footprint (`< 24 MB RAM`):** Runs in pure **Java 25** (`-Xms8m -Xmx24m`) using *Virtual Threads*, *Stream Gatherers*, *Records*, and lock-free *Ring Buffers* with **zero external dependencies**.
+1. **Space-Grade Footprint (`< 24 MB RAM`):** Runs in pure **Java 25** (compatible with **JDK 21+**, `-Xms8m -Xmx24m`) using *Virtual Threads*, *Records*, and lock-free *Ring Buffers* with **zero external dependencies**.
 2. **Embedded Statistical Anomaly Detection:** Computes real-time **EWMA** (*Exponentially Weighted Moving Average*) + **Z-Score** deviation relative to each astronaut's personal pre-flight baseline ($\mu_0, \sigma_0$).
 3. **4 Physiological Systems Monitored:** Cardiovascular, Musculoskeletal, Neuro-Ocular (**SANS**), and Immune/Radiation.
 4. **Traffic-Light Triage & Actionable Countermeasures:** Translates complex telemetry into `NOMINAL` (Green), `CAUTION` (Yellow), and `CRITICAL` (Red) states, explaining **why** the alert triggered (citing the exact **NASA OSDR** study) and **what to do right now**.
@@ -121,7 +129,7 @@ $$\text{EWMA}_t = \alpha x_t + (1 - \alpha)\text{EWMA}_{t-1}, \qquad Z_t = \frac
 ## ⚡ 3. Quick Start (Run in 5 Seconds)
 
 ### Prerequisites
-- **JDK 25** (uses standard library Virtual Threads, Stream Gatherers, and Records with zero external dependencies).
+- **JDK 25** (compatible with **JDK 21+** — uses standard library Virtual Threads and Records with zero external dependencies).
 
 ### Linux / macOS / Git Bash
 ```bash
@@ -147,7 +155,7 @@ Then open the interactive tactical dashboard in your browser:
 ```text
 hackathon-nasa-2026/
 ├── README.md                           # Project documentation & NASA OSDR scientific validation
-├── PITCH.odp                           # Official 7-Slide Pitch Deck (LibreOffice Impress)
+├── 1115.mp4                            # Official 22s Video Demo (<= 30s NASA Space Apps standard)
 ├── logo-OrbitalVitals.jpg              # Official project logo
 ├── run.sh                              # Ultra-low-RAM build & launch script (-Xms8m -Xmx24m)
 ├── img/

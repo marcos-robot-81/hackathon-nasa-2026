@@ -20,13 +20,16 @@ replay_pid*
 *.tmp
 *.bak
 
-# Rascunhos, Notas Internas e Roteiros (.md locais da equipe)
+# Rascunhos, Notas Internas, Slides Locais e Roteiros (mantidos apenas localmente)
 Nota01.md
 Resoltado-do-gemini-deep-research.md
 GUIA-EQUIPE-ORBITALVITALS.md
 PITCH-ORBITALVITALS.md
 Validacao-Cientifica-NASA-OSDR.md
 PDFs/
+lixo/
+*.pdf
+*.odp
 
 # IDEs & Editores
 .idea/
