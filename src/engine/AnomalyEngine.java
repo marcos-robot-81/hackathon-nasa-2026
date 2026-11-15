@@ -5,7 +5,6 @@ import db.OsdrStudyRef;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Gatherers;
 import user.AstronautProfile;
 import user.MetricBaseline;
 
@@ -26,10 +25,7 @@ public final class AnomalyEngine {
             return 0.0;
         }
         int w = Math.min(windowSize, samples.size());
-        List<List<TelemetrySample>> windows = samples.stream()
-            .gather(Gatherers.windowSliding(w))
-            .toList();
-        List<TelemetrySample> lastWindow = windows.getLast();
+        List<TelemetrySample> lastWindow = samples.subList(samples.size() - w, samples.size());
         return lastWindow.stream().mapToDouble(TelemetrySample::value).average().orElse(0.0);
     }
 
