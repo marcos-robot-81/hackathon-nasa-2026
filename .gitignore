@@ -29,6 +29,7 @@ Validacao-Cientifica-NASA-OSDR.md
 PDFs/
 lixo/
 *.pdf
+!OrbitalVitals cinematic scientific pitch.pdf
 *.odp
 
 # IDEs & Editores

@@ -8,9 +8,13 @@
 
 ---
 
-## 🎥 Official Project Demo Video (≤ 30s NASA Space Apps Standard)
+## 🎥 Official Project Demo Video & Pitch Deck (NASA Space Apps Standard)
 
-- **🎬 Public Video Demo Link (22 seconds):** [https://github.com/marcos-robot-81/hackathon-nasa-2026/blob/main/1115.mp4](https://github.com/marcos-robot-81/hackathon-nasa-2026/blob/main/1115.mp4)
+[![Watch OrbitalVitals 22s Demo on YouTube](https://img.youtube.com/vi/Az7vgIXbIu8/maxresdefault.jpg)](https://www.youtube.com/watch?v=Az7vgIXbIu8)
+
+- **▶️ Official YouTube Demo Video (22s):** [https://www.youtube.com/watch?v=Az7vgIXbIu8](https://www.youtube.com/watch?v=Az7vgIXbIu8) *(short link: [https://youtu.be/Az7vgIXbIu8](https://youtu.be/Az7vgIXbIu8))*
+- **🎬 GitHub Mirror Video (`1115.mp4`):** [https://github.com/marcos-robot-81/hackathon-nasa-2026/blob/main/1115.mp4](https://github.com/marcos-robot-81/hackathon-nasa-2026/blob/main/1115.mp4)
+- **📊 Official Slide Deck (`OrbitalVitals cinematic scientific pitch.pdf`):** [OrbitalVitals cinematic scientific pitch.pdf](OrbitalVitals%20cinematic%20scientific%20pitch.pdf)
 - **💻 Public Project Repository Link:** [https://github.com/marcos-robot-81/hackathon-nasa-2026](https://github.com/marcos-robot-81/hackathon-nasa-2026)
 - **Duration:** `00:22` (`22.4s` — strictly compliant with the **≤ 30 seconds** NASA Space Apps Global Award rule, with English on-screen text and English subtitles).
 
@@ -154,21 +158,33 @@ Then open the interactive tactical dashboard in your browser:
 
 ```text
 hackathon-nasa-2026/
-├── README.md                           # Project documentation & NASA OSDR scientific validation
-├── 1115.mp4                            # Official 22s Video Demo (<= 30s NASA Space Apps standard)
-├── logo-OrbitalVitals.jpg              # Official project logo
-├── run.sh                              # Ultra-low-RAM build & launch script (-Xms8m -Xmx24m)
+├── README.md                                     # Project documentation & NASA OSDR scientific validation
+├── 1115.mp4                                      # Official 22s Video Demo (<= 30s NASA Space Apps standard)
+├── OrbitalVitals cinematic scientific pitch.pdf  # Official slide presentation deck
+├── logo-OrbitalVitals.jpg                        # Official project logo
+├── run.sh                                        # Ultra-low-RAM build & launch script (-Xms8m -Xmx24m)
 ├── img/
-│   └── Monitor de Saúde Espacial...png # Tactical wrist gauntlet concept render
+│   └── Monitor de Saúde Espacial...png           # Tactical wrist gauntlet concept render
 └── src/
-    ├── main.java                       # Entry point (CLI + embedded server & simulator)
-    ├── api/OrbitalServer.java          # Native Java Virtual-Thread HTTP Server (/api/telemetry, /api/control)
-    ├── db/LocalStore.java              # Lock-free Ring Buffers, NASA OSDR catalog & Earth Sync Outbox
-    ├── db/OsdrStudyRef.java            # Record modeling official NASA OSDR dataset metadata
-    ├── engine/AnomalyEngine.java       # EWMA + Z-Score statistical triage & clinical rules
-    ├── engine/TelemetrySimulator.java  # Biophysical simulator (Gravity, Days, EVA Suit, Solar Storm)
-    ├── engine/SensorSnapshot.java      # Immutable snapshot of all 4 physiological systems
-    ├── i18n/I18n.java                  # Multilingual dictionary (English, Portuguese, Spanish)
-    ├── user/AstronautProfile.java      # Personal pre-flight baselines (μ0, σ0)
-    └── web/index.html                  # Interactive 3D/SVG Body Map & Tactical Mission HUD
+    ├── main.java                                 # Entry point (CLI + embedded server & simulator)
+    ├── api/OrbitalServer.java                    # Native Java Virtual-Thread HTTP Server (/api/telemetry, /api/control)
+    ├── db/LocalStore.java                        # Lock-free Ring Buffers, NASA OSDR catalog & Earth Sync Outbox
+    ├── db/OsdrStudyRef.java                      # Record modeling official NASA OSDR dataset metadata
+    ├── engine/AnomalyEngine.java                 # EWMA + Z-Score statistical triage & clinical rules
+    ├── engine/TelemetrySimulator.java            # Biophysical simulator (Gravity, Days, EVA Suit, Solar Storm)
+    ├── engine/SensorSnapshot.java                # Immutable snapshot of all 4 physiological systems
+    ├── i18n/I18n.java                            # Multilingual dictionary (English, Portuguese, Spanish)
+    ├── user/AstronautProfile.java                # Personal pre-flight baselines (μ0, σ0)
+    └── web/index.html                            # Interactive 3D/SVG Body Map & Tactical Mission HUD
 ```
+
+---
+
+## 🛠️ 5. Tools, Open-Source Resources & Super Intelligence (SI) Disclosure
+
+In compliance with the **NASA Space Apps Challenge** rules, we transparently disclose all software tools, open-source platforms, and Super Intelligence (SI) / AI tools used to accelerate development:
+
+- **Programming Language & Runtime:** [OpenJDK (Java 21 / Java 25 Standard Library)](https://openjdk.org/) & [Open Web Standards (HTML5, CSS3, SVG, Vanilla JS)](https://developer.mozilla.org/)
+- **Video Editing & Subtitles:** [CapCut](https://www.capcut.com/pt-br/)
+- **Presentation Design & Graphics:** [Canva](https://www.canva.com/) & [GIMP (GNU Image Manipulation Program)](https://www.gimp.org/)
+- **Super Intelligence (SI) / AI Tools Used:** [OpenAI ChatGPT](https://chatgpt.com/) and [Google Gemini](https://gemini.google.com/) (including Antigravity AI coding assistant) were used for NASA OSDR literature mapping, code/UI refactoring, multilingual translation (`EN`/`PT`/`ES`), and original concept illustration (zero NASA logos or restricted agency branding were generated or modified). The runtime biomedical engine itself executes 100% deterministic mathematical equations (`EWMA + Z-Score`) without generative AI in the clinical decision loop.
